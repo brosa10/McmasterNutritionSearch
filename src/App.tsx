@@ -45,6 +45,29 @@ function parseNumeric(value: string): number {
   return parseFloat(value.replace(/,/g, "")) || 0;
 }
 
+const FORMULA_KEYS = NUTRITIONAL_FIELDS.map((f) => f.key.toLowerCase());
+
+function evaluateFormula(formula: string, info: FoodInfo): number {
+  try {
+    let expr = formula.toLowerCase().replace(/\s+/g, "");
+    
+    FORMULA_KEYS.forEach((key) => {
+      const value = parseNumeric(info[key as keyof FoodInfo]);
+      const regex = new RegExp(`\\b${key}\\b`, "g");
+      expr = expr.replace(regex, value.toString());
+    });
+
+    if (!/^[\d+\-*/().]+$/.test(expr)) {
+      return 0;
+    }
+
+    const result = Function(`"use strict"; return (${expr})`)();
+    return typeof result === "number" && isFinite(result) ? result : 0;
+  } catch {
+    return 0;
+  }
+}
+
 function App() {
   const [foods, setFoods] = useState<FoodItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -56,6 +79,7 @@ function App() {
     Record<string, { min: string; max: string }>
   >({});
   const [showRangeFilters, setShowRangeFilters] = useState(false);
+  const [customFormula, setCustomFormula] = useState("");
 
   useEffect(() => {
     fetch("/foods.json")
@@ -136,6 +160,14 @@ function App() {
       });
     }
 
+    if (customFormula.trim()) {
+      result = [...result].sort((a, b) => {
+        const aVal = evaluateFormula(customFormula, a.Info);
+        const bVal = evaluateFormula(customFormula, b.Info);
+        return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
+      });
+    }
+
     return result;
   }, [
     foods,
@@ -146,6 +178,7 @@ function App() {
     rangeFilters,
     sortField,
     sortDirection,
+    customFormula,
   ]);
 
   const handleRangeChange = (
@@ -166,6 +199,7 @@ function App() {
     setSortField("");
     setSortDirection("asc");
     setRangeFilters({});
+    setCustomFormula("");
   };
 
   return (
@@ -256,6 +290,20 @@ function App() {
                   <option value="desc">Descending</option>
                 </select>
               </div>
+            </div>
+
+            <div className="custom-formula-section">
+              <label>Custom Formula (e.g., protein/calories, protein*100/price)</label>
+              <input
+                type="text"
+                className="formula-input"
+                placeholder="Enter formula using: price, calories, fat, protein, etc."
+                value={customFormula}
+                onChange={(e) => setCustomFormula(e.target.value)}
+              />
+              <p className="formula-hint">
+                Available: {NUTRITIONAL_FIELDS.map((f) => f.key.toLowerCase()).join(", ")}
+              </p>
             </div>
 
             <div className="range-fields">
