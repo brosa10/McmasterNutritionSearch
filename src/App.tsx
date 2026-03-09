@@ -45,15 +45,29 @@ function parseNumeric(value: string): number {
   return parseFloat(value.replace(/,/g, "")) || 0;
 }
 
-const FORMULA_KEYS = NUTRITIONAL_FIELDS.map((f) => f.key.toLowerCase());
+const FORMULA_KEYS: Record<string, string> = {
+  price: "Price",
+  calories: "Calories",
+  fat: "Fat",
+  saturated_fat: "Saturated_Fat",
+  cholesterol: "Cholesterol",
+  sodium: "Sodium",
+  carbohydrate: "Carbohydrate",
+  total_fibre: "Total_Fibre",
+  sugars: "Sugars",
+  protein: "Protein",
+  vitamin_c: "Vitamin_C",
+  calcium: "Calcium",
+  iron: "Iron",
+};
 
 function evaluateFormula(formula: string, info: FoodInfo): number {
   try {
     let expr = formula.toLowerCase().replace(/\s+/g, "");
     
-    FORMULA_KEYS.forEach((key) => {
-      const value = parseNumeric(info[key as keyof FoodInfo]);
-      const regex = new RegExp(`\\b${key}\\b`, "g");
+    Object.entries(FORMULA_KEYS).forEach(([lowercaseKey, actualKey]) => {
+      const value = parseNumeric(info[actualKey as keyof FoodInfo]);
+      const regex = new RegExp(`\\b${lowercaseKey}\\b`, "g");
       expr = expr.replace(regex, value.toString());
     });
 
