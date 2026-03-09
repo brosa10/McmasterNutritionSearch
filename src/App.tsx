@@ -178,7 +178,7 @@ function App() {
       result = [...result].sort((a, b) => {
         const aVal = evaluateFormula(customFormula, a.Info);
         const bVal = evaluateFormula(customFormula, b.Info);
-        return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
+        return sortDirection === "asc" ? bVal - aVal : aVal - bVal;
       });
     }
 
